@@ -1,0 +1,14 @@
+[project]
+name = "webcardio-ecg-monitor"
+version = "0.1.0"
+description = "WebCardio WC1340 real-time ECG monitor application"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "websockets>=13.1",
+    "numpy>=2.1.0",
+    "scipy>=1.14.0",
+]
+
+[tool.vercel]
+entrypoint = "backend.server:app"
