@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebCardio WC1340 | Real-Time Clinical ECG Monitor</title>
+  <meta name="description" content="High-performance real-time 2-channel ECG monitor and telemetry dashboard for WebCardio WC1340 and LifeSignals biosensors." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body class="theme-dark">
+  <div class="app-container">
+    
+    <!-- Top Navigation & System Status Bar -->
+    <header class="app-header">
+      <div class="brand-section">
+        <div class="brand-logo">
+          <svg class="ecg-pulse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">WebCardio™ <span class="model-badge">WC1340</span></h1>
+          <p class="brand-subtitle">LifeSignals™ 2-Channel Ambulatory Biosensor</p>
+        </div>
+      </div>
+
+      <!-- Mode & Hardware Status Controls -->
+      <div class="header-controls">
+        <div class="status-chip" id="connection-status-badge">
+          <span class="status-dot pulse" id="connection-dot"></span>
+          <span id="connection-text">Connecting...</span>
+        </div>
+
+        <div class="mode-toggle-group">
+          <button id="btn-mode-sim" class="btn-toggle active" title="Switch to Clinical Simulator Mode">Simulator</button>
+          <button id="btn-mode-live" class="btn-toggle" title="Switch to WebCardio Hardware Wi-Fi Stream">Live Hardware</button>
+        </div>
+
+        <button id="btn-wifi-modal" class="btn-action">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+            <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+            <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+            <circle cx="12" cy="20" r="1"></circle>
+          </svg>
+          Wi-Fi & Pairing Setup
+        </button>
+
+        <button id="btn-audio-toggle" class="btn-icon" title="Toggle QRS Beep Sound">
+          <svg id="icon-sound-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+          <svg id="icon-sound-off" class="hidden" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Medical Grid Layout -->
+    <main class="main-layout">
+      
+      <!-- Waveform Oscilloscope Display Area (Left / Center) -->
+      <section class="waveform-viewport">
+        
+        <!-- Lead I / Channel 1 Canvas Card -->
+        <div class="channel-card">
+          <div class="channel-header">
+            <div class="channel-title">
+              <span class="channel-tag lead-1-tag">LEAD I</span>
+              <span class="channel-scale-info">Ch 1 &bull; 250 Hz &bull; 10 mm/mV &bull; 25 mm/s</span>
+            </div>
+            <div class="channel-telemetry-pill">
+              <span class="pill-label">Amp:</span>
+              <span id="ch1-peak-val" class="mono-value">1.05 mV</span>
+            </div>
+          </div>
+          <div class="canvas-wrapper">
+            <canvas id="ecg-canvas-ch1" width="1200" height="260"></canvas>
+            <div class="sweep-marker-tag" id="sweep-tag-1">REC</div>
+          </div>
+        </div>
+
+        <!-- Lead II / Channel 2 Canvas Card -->
+        <div class="channel-card">
+          <div class="channel-header">
+            <div class="channel-title">
+              <span class="channel-tag lead-2-tag">LEAD II</span>
+              <span class="channel-scale-info">Ch 2 &bull; 250 Hz &bull; 10 mm/mV &bull; 25 mm/s</span>
+            </div>
+            <div class="channel-telemetry-pill">
+              <span class="pill-label">Amp:</span>
+              <span id="ch2-peak-val" class="mono-value">1.45 mV</span>
+            </div>
+          </div>
+          <div class="canvas-wrapper">
+            <canvas id="ecg-canvas-ch2" width="1200" height="260"></canvas>
+            <div class="sweep-marker-tag" id="sweep-tag-2">REC</div>
+          </div>
+        </div>
+
+        <!-- Bottom Oscilloscope Calibration & Signal Control Strip -->
+        <div class="control-strip">
+          <div class="control-group">
+            <label class="control-label">Gain (mV Scale)</label>
+            <div class="btn-segmented">
+              <button class="btn-seg" data-gain="0.5">0.5x</button>
+              <button class="btn-seg active" data-gain="1.0">1.0x (10mm/mV)</button>
+              <button class="btn-seg" data-gain="2.0">2.0x</button>
+              <button class="btn-seg" data-gain="5.0">5.0x</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Sweep Speed</label>
+            <div class="btn-segmented">
+              <button class="btn-seg" data-speed="12.5">12.5 mm/s</button>
+              <button class="btn-seg active" data-speed="25.0">25 mm/s</button>
+              <button class="btn-seg" data-speed="50.0">50 mm/s</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">DSP Bandpass Filter</label>
+            <div class="btn-segmented">
+              <button class="btn-seg active" data-filter="monitor">Monitor (0.5-40Hz)</button>
+              <button class="btn-seg" data-filter="diagnostic">Diagnostic</button>
+              <button class="btn-seg" data-filter="raw">Raw Unfiltered</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Mains Notch (50Hz)</label>
+            <button id="btn-toggle-notch" class="btn-pill-toggle active">NOTCH ON</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Telemetry & Vitals Sidebar -->
+      <aside class="vitals-sidebar">
+        
+        <!-- Primary Heart Rate Gauge -->
+        <div class="vitals-card primary-hr-card">
+          <div class="card-header-compact">
+            <span class="card-label">HEART RATE</span>
+            <span class="card-unit">BPM</span>
+          </div>
+          <div class="hr-display-row">
+            <div class="heart-pulse-container" id="heart-wrapper">
+              <svg class="heart-svg" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+            </div>
+            <div class="hr-number" id="hr-value">72</div>
+          </div>
+          <div class="hr-sub-metrics">
+            <div class="metric-item">
+              <span class="metric-label">RR Interval</span>
+              <span class="metric-val" id="rr-interval-val">833 ms</span>
+            </div>
+            <div class="metric-item">
+              <span class="metric-label">Rhythm</span>
+              <span class="metric-val text-accent" id="rhythm-val">Normal Sinus</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Signal Quality & Telemetry Card -->
+        <div class="vitals-card">
+          <div class="card-header-compact">
+            <span class="card-label">SIGNAL INTEGRITY & TELEMETRY</span>
+          </div>
+          <div class="sqi-progress-wrapper">
+            <div class="sqi-label-row">
+              <span>Quality Index (SQI)</span>
+              <span id="sqi-text" class="mono-value">98% (High)</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="sqi-bar" style="width: 98%;"></div>
+            </div>
+          </div>
+
+          <div class="battery-telemetry-row">
+            <div class="battery-gauge">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="7" width="16" height="10" rx="2" ry="2"></rect>
+                <line x1="22" y1="11" x2="22" y2="13"></line>
+              </svg>
+              <span>Patch Battery:</span>
+            </div>
+            <span class="mono-value" id="battery-value">94%</span>
+          </div>
+        </div>
+
+        <!-- 5-Electrode Contact Status Diagram -->
+        <div class="vitals-card">
+          <div class="card-header-compact">
+            <span class="card-label">5-ELECTRODE CONTACT MAP</span>
+            <span class="sensor-badge-small">WC1340</span>
+          </div>
+          <div class="patch-diagram-container">
+            <!-- SVG layout mirroring physical WebCardio 5-pad patch shape -->
+            <svg class="patch-svg" viewBox="0 0 200 160">
+              <!-- Patch Silicone Body Outline -->
+              <path d="M 50 20 Q 100 45 150 20 Q 165 35 155 60 Q 185 80 185 100 Q 165 140 145 135 Q 100 115 55 135 Q 35 140 15 100 Q 15 80 45 60 Q 35 35 50 20 Z" 
+                    fill="#15222e" stroke="#2a3d4f" stroke-width="2" />
+              <!-- Center LifeSignals ASIC Hub -->
+              <rect x="75" y="45" width="50" height="70" rx="8" fill="#0d1720" stroke="#37526d" stroke-width="1.5" />
+              <text x="100" y="70" text-anchor="middle" fill="#00ff88" font-size="8" font-family="Inter" font-weight="700">CMSEN</text>
+              <circle cx="100" cy="90" r="7" fill="none" stroke="#00e5ff" stroke-width="1.5" />
+              <line x1="100" y1="86" x2="100" y2="92" stroke="#00e5ff" stroke-width="1.5" />
+
+              <!-- Pad 1: Right Arm / Upper Right -->
+              <circle id="pad-ra" cx="45" cy="35" r="14" class="electrode-pad active" />
+              <text x="45" y="38" text-anchor="middle" class="pad-label">RA</text>
+
+              <!-- Pad 2: Left Arm / Upper Left -->
+              <circle id="pad-la" cx="155" cy="35" r="14" class="electrode-pad active" />
+              <text x="155" y="38" text-anchor="middle" class="pad-label">LA</text>
+
+              <!-- Pad 3: Reference / Right Leg -->
+              <circle id="pad-rl" cx="35" cy="115" r="14" class="electrode-pad active" />
+              <text x="35" y="118" text-anchor="middle" class="pad-label">RL</text>
+
+              <!-- Pad 4: Left Leg / Lower Left -->
+              <circle id="pad-ll" cx="165" cy="115" r="14" class="electrode-pad active" />
+              <text x="165" y="118" text-anchor="middle" class="pad-label">LL</text>
+
+              <!-- Pad 5: V / Chest Center Contact -->
+              <circle id="pad-v" cx="100" cy="130" r="14" class="electrode-pad active" />
+              <text x="100" y="133" text-anchor="middle" class="pad-label">V</text>
+            </svg>
+          </div>
+          <div class="pad-legend-row">
+            <span class="legend-item"><span class="legend-dot green"></span> Good Contact</span>
+            <span class="legend-item"><span class="legend-dot red"></span> Lead Off / High Noise</span>
+          </div>
+        </div>
+
+        <!-- Simulator Pathology Controls (Visible in Simulator Mode) -->
+        <div class="vitals-card" id="sim-conditions-card">
+          <div class="card-header-compact">
+            <span class="card-label">SIMULATOR RHYTHM INJECTION</span>
+          </div>
+          <div class="rhythm-btn-grid">
+            <button class="btn-rhythm active" data-condition="normal">Normal Sinus (72)</button>
+            <button class="btn-rhythm" data-condition="tachycardia">Tachycardia (125)</button>
+            <button class="btn-rhythm" data-condition="bradycardia">Bradycardia (48)</button>
+            <button class="btn-rhythm" data-condition="pvc">PVC Ectopic Beats</button>
+            <button class="btn-rhythm" data-condition="noise">Lead Motion Noise</button>
+          </div>
+        </div>
+
+        <!-- Session Recording & Export Card -->
+        <div class="vitals-card">
+          <div class="card-header-compact">
+            <span class="card-label">CLINICAL SESSION RECORDING</span>
+          </div>
+          <div class="recording-controls-row">
+            <button id="btn-record-toggle" class="btn-record">
+              <span class="record-dot" id="record-indicator"></span>
+              <span id="record-btn-text">Start Recording</span>
+            </button>
+            <div class="recording-timer" id="recording-time">00:00</div>
+          </div>
+          <div class="export-actions-row">
+            <button id="btn-export-csv" class="btn-secondary" disabled>Download CSV</button>
+            <button id="btn-export-json" class="btn-secondary" disabled>Download JSON</button>
+          </div>
+        </div>
+
+      </aside>
+    </main>
+
+    <!-- Modal: Wi-Fi Setup & Pairing Assistant -->
+    <div class="modal-overlay hidden" id="wifi-modal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div class="modal-title-group">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2">
+              <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+              <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+              <circle cx="12" cy="20" r="1"></circle>
+            </svg>
+            <h2>WebCardio WC1340 Wi-Fi Connection Guide</h2>
+          </div>
+          <button class="modal-close-btn" id="btn-close-modal">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="guide-steps">
+            
+            <div class="step-card">
+              <div class="step-num">1</div>
+              <div class="step-content">
+                <h3>Host a 2.4 GHz Wi-Fi Hotspot on Mac or Phone</h3>
+                <p>The WebCardio WC1340 uses an 802.11b radio with pre-programmed credentials:</p>
+                <div class="cred-table">
+                  <div class="cred-row">
+                    <span class="cred-key">Hotspot SSID:</span>
+                    <span class="cred-val highlight" id="copy-ssid" title="Click to copy">CMSEN</span>
+                    <span class="cred-hint">(or try <code>WC1340</code> or full barcode <code>WC134000000T0010PHNTCMSEN...</code>)</span>
+                  </div>
+                  <div class="cred-row">
+                    <span class="cred-key">Hotspot Password:</span>
+                    <span class="cred-val highlight" id="copy-pw" title="Click to copy">copernicus</span>
+                    <span class="cred-hint">(LifeSignals standard WPA2-PSK key)</span>
+                  </div>
+                  <div class="cred-row">
+                    <span class="cred-key">Band:</span>
+                    <span class="cred-val">2.4 GHz Only</span>
+                    <span class="cred-hint">(Enable "Maximize Compatibility" on iPhone/Android)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="step-card">
+              <div class="step-num">2</div>
+              <div class="step-content">
+                <h3>Power On Biosensor</h3>
+                <p>Press and hold the power button on the center of the patch until the LED illuminates or blinks. The patch will connect to the hotspot within 5–15 seconds.</p>
+              </div>
+            </div>
+
+            <div class="step-card">
+              <div class="step-num">3</div>
+              <div class="step-content">
+                <div class="step-header-with-btn">
+                  <h3>Scan & Discover Sensor on Network</h3>
+                  <button id="btn-run-scan" class="btn-scan">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    Scan Local Subnet
+                  </button>
+                </div>
+                <div id="scan-results-container" class="scan-results-box">
+                  <div class="scan-placeholder">Click "Scan Local Subnet" to search for the sensor's IP address.</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="step-card">
+              <div class="step-num">4</div>
+              <div class="step-content">
+                <h3>Direct IP Connection (Optional)</h3>
+                <p>If you know your sensor's IP address or if it is running in SoftAP mode:</p>
+                <div class="direct-ip-row">
+                  <input type="text" id="input-sensor-ip" placeholder="e.g. 192.168.1.120" class="input-text" />
+                  <input type="number" id="input-sensor-port" value="5000" placeholder="5000" class="input-text-short" />
+                  <button id="btn-direct-connect" class="btn-primary">Connect</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <span class="footer-note">Backend listening on all interfaces on TCP <code>5000</code> and UDP <code>5000 / 9000</code>.</span>
+          <button class="btn-action" id="btn-modal-done">Done</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Scripts with cache busting -->
+  <script src="/static/js/ecg_canvas.js?v=3"></script>
+  <script src="/static/js/audio.js?v=3"></script>
+  <script src="/static/js/app.js?v=3"></script>
+</body>
+</html>
